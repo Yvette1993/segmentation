@@ -5,7 +5,6 @@
 
 This project aims at providing a concise, easy-to-use, modifiable reference implementation for semantic segmentation models using PyTorch.
 
-<p align="center"><img width="100%" src="docs/weimar_000091_000019_gtFine_color.png" /></p>
 
 ## Installation
 ```
@@ -22,6 +21,8 @@ git clone https://github.com/Tramac/awesome-semantic-segmentation-pytorch.git
 # the files if you want and won't need to re-build it
 cd awesome-semantic-segmentation-pytorch/core/nn
 python setup.py build develop
+
+pip --default-timeout=100 install pillow requests scipy -i http://pypi.douban.com/simple/ --trusted-host pypi.douban.com
 ```
 
 ## Usage
