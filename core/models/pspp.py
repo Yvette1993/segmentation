@@ -22,7 +22,9 @@ class PSPPNet(SegBaseModel):
         size = x.size()[2:]
         _, _, c3, c4 = self.base_forward(x)
         outputs = []
-        x = self.head(c4)
+        x = self.pspp(c4)
+        x = torch.cat(x,c4)
+        x = self.head(x)
         x0 = F.interpolate(x[0], size, mode='bilinear', align_corners=True)
         outputs.append(x0)
 
