@@ -4,13 +4,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .segbase import SegBaseModel
+# from .base_models.vgg import vgg16
+from .customize import PSPP
 
 __all__ = ['PSPPNet', 'get_pspp', 'get_pspp_resnet50_citys',
-           'get_pspp_resnet18_citys', 'get_danet_vgg16_citys']
+           'get_pspp_resnet101_citys']
 
 class PSPPNet(SegBaseModel):
     def __init__(self, nclass, backbone='resnet50', aux=True, pretrained_base=True, **kwargs):
         super(PSPPNet, self).__init__(nclass, aux, backbone, pretrained_base=pretrained_base, **kwargs)
+        self.pspp = PSPP(2048,  **kwargs)
         self.head = _PSPPHead(2048, nclass, aux, **kwargs)
 
         self.__setattr__('exclusive', ['head'])
@@ -165,12 +168,12 @@ def get_pspp_resnet50_citys(**kwargs):
     return get_pspp('citys', 'resnet50', **kwargs)
 
 
-def get_pspp_resnet18_citys(**kwargs):
-    return get_pspp('citys', 'resnet18', **kwargs)
+def get_pspp_resnet101_citys(**kwargs):
+    return get_pspp('citys', 'resnet101', **kwargs)
 
 
-def get_pspp_vgg16_citys(**kwargs):
-    return get_pspp('citys', 'vgg16', **kwargs)
+# def get_pspp_vgg16_citys(**kwargs):
+#     return get_pspp('citys', 'vgg16', **kwargs)
 
 
 if __name__ == '__main__':

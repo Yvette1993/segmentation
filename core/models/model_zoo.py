@@ -18,6 +18,7 @@ from .cgnet import *
 from .espnet import *
 from .lednet import *
 from .dfanet import *
+from .pspp import *
 
 __all__ = ['get_model', 'get_model_list', 'get_segmentation_model']
 
@@ -78,6 +79,10 @@ _models = {
     'espnet_citys': get_espnet_citys,
     'lednet_citys': get_lednet_citys,
     'dfanet_citys': get_dfanet_citys,
+
+    'pspp_resnet50_citys':get_pspp_resnet50_citys,
+    'pspp_resnet101_citys':get_pspp_resnet101_citys,
+    # 'pspp_vggq6_citys':get_pspp_vgg16_citys,
 }
 
 
@@ -118,6 +123,6 @@ def get_segmentation_model(model, **kwargs):
         'espnet': get_espnet,
         'lednet': get_lednet,
         'dfanet': get_dfanet,
-        'dsp':get_dsp,
+        'pspp':get_pspp,
     }
     return models[model](**kwargs)
