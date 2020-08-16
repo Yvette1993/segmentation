@@ -219,7 +219,7 @@ class Trainer(object):
             iteration = iteration + 1
             self.lr_scheduler.step()
 
-            images = images.transpose(1, 3)    ####...
+            # images = images.transpose(1, 3)    ####...
             images = images.to(self.device)
             targets = targets.to(self.device)
 
