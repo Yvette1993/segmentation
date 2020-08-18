@@ -5,16 +5,16 @@ import torch.nn.functional as F
 
 from .segbase import SegBaseModel
 # from .base_models.vgg import vgg16
-from .customize import PSPP
+from .customize import _PSPP
 
 __all__ = ['PSPPNet', 'get_pspp', 'get_pspp_resnet50_citys',
            'get_pspp_resnet101_citys']
 
 class PSPPNet(SegBaseModel):
-    def __init__(self, nclass, backbone='resnet50', aux=True, pretrained_base=True, **kwargs):
-        super(PSPPNet, self).__init__(nclass, aux, backbone, pretrained_base=pretrained_base, **kwargs)
-        self.pspp = PSPP(2048,  **kwargs)
-        self.head = _PSPPHead(2048, nclass, aux, **kwargs)
+    def __init__(self, nclass, backbone='resnet50', aux=True, pretrained_base=True,  norm_layer=nn.BatchNorm2d,**kwargs):
+        super(PSPPNet, self).__init__(nclass, aux, backbone,norm_layer=norm_layer,  pretrained_base=pretrained_base, **kwargs)
+        self.pspp = _PSPPHead(nclass,  **kwargs)
+        self.head = _SPHead(2048, nclass, aux, **kwargs)
 
         self.__setattr__('exclusive', ['head'])
 
@@ -80,10 +80,18 @@ class _ChannelAttentionModule(nn.Module):
 
         return out
 
-
 class _PSPPHead(nn.Module):
-    def __init__(self, in_channels, nclass, aux=True, norm_layer=nn.BatchNorm2d, norm_kwargs=None, **kwargs):
+    def __init__(self, nclass,  norm_layer=nn.BatchNorm2d, norm_kwargs=None, **kwargs):
         super(_PSPPHead, self).__init__()
+        self.pspp = _PSPP(2048,  norm_layer=norm_layer, norm_kwargs=norm_kwargs)
+
+        def forward(self, x):
+            x = self.pspp(x)
+            return x
+
+class _SPHead(nn.Module):
+    def __init__(self, in_channels, nclass, aux=True, norm_layer=nn.BatchNorm2d, norm_kwargs=None, **kwargs):
+        super(_SPHead, self).__init__()
         self.aux = aux
         inter_channels = in_channels // 4
         self.conv_p1 = nn.Sequential(
@@ -91,23 +99,23 @@ class _PSPPHead(nn.Module):
             norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
             nn.ReLU(True)
         )
-        self.conv_c1 = nn.Sequential(
-            nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
-            norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
-            nn.ReLU(True)
-        )
+        # self.conv_c1 = nn.Sequential(
+        #     nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
+        #     norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
+        #     nn.ReLU(True)
+        # )
         self.pam = _PositionAttentionModule(inter_channels, **kwargs)
-        self.cam = _ChannelAttentionModule(**kwargs)
+        # self.cam = _ChannelAttentionModule(**kwargs)
         self.conv_p2 = nn.Sequential(
             nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
             norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
             nn.ReLU(True)
         )
-        self.conv_c2 = nn.Sequential(
-            nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
-            norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
-            nn.ReLU(True)
-        )
+        # self.conv_c2 = nn.Sequential(
+        #     nn.Conv2d(inter_channels, inter_channels, 3, padding=1, bias=False),
+        #     norm_layer(inter_channels, **({} if norm_kwargs is None else norm_kwargs)),
+        #     nn.ReLU(True)
+        # )
         self.out = nn.Sequential(
             nn.Dropout(0.1),
             nn.Conv2d(inter_channels, nclass, 1)
@@ -117,30 +125,32 @@ class _PSPPHead(nn.Module):
                 nn.Dropout(0.1),
                 nn.Conv2d(inter_channels, nclass, 1)
             )
-            self.conv_c3 = nn.Sequential(
-                nn.Dropout(0.1),
-                nn.Conv2d(inter_channels, nclass, 1)
-            )
+            # self.conv_c3 = nn.Sequential(
+            #     nn.Dropout(0.1),
+            #     nn.Conv2d(inter_channels, nclass, 1)
+            # )
 
     def forward(self, x):
         feat_p = self.conv_p1(x)
         feat_p = self.pam(feat_p)
         feat_p = self.conv_p2(feat_p)
 
-        feat_c = self.conv_c1(x)
-        feat_c = self.cam(feat_c)
-        feat_c = self.conv_c2(feat_c)
+        # feat_c = self.conv_c1(x)
+        # feat_c = self.cam(feat_c)
+        # feat_c = self.conv_c2(feat_c)
 
-        feat_fusion = feat_p + feat_c
+        # feat_fusion = feat_p + feat_c
+        feat_fusion = feat_p 
+
 
         outputs = []
         fusion_out = self.out(feat_fusion)
         outputs.append(fusion_out)
         if self.aux:
             p_out = self.conv_p3(feat_p)
-            c_out = self.conv_c3(feat_c)
+            # c_out = self.conv_c3(feat_c)
             outputs.append(p_out)
-            outputs.append(c_out)
+            # outputs.append(c_out)
 
         return tuple(outputs)
 

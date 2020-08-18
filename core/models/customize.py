@@ -121,67 +121,53 @@ class ConcurrentModule(nn.ModuleList):
             outputs.append(layer(x))
         return torch.cat(outputs, 1)
 
-class PSPP(nn.Module):
-    """
-    Reference:
-        Zhao, Hengshuang, et al. *"Pyramid scene parsing network."*
-    """
-    def __init__(self, in_channels,  up_kwargs):
-        super(PSPP, self).__init__()
+def _PSP1x1Conv(in_channels, out_channels, norm_layer, norm_kwargs):
+    return nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, 1, bias=False),
+        norm_layer(out_channels, **({} if norm_kwargs is None else norm_kwargs)),
+        nn.ReLU(True)
+    )
+
+class _PSPP(nn.Module):
+    def __init__(self, in_channels,  norm_layer=nn.BatchNorm2d, **kwargs):
+        super(_PSPP, self).__init__()
+        
+        out_channels = int(in_channels/4)
         self.pool1 = nn.AdaptiveAvgPool2d(1)
         self.pool2 = nn.AdaptiveAvgPool2d(2)
         self.pool3 = nn.AdaptiveAvgPool2d(3)
         self.pool4 = nn.AdaptiveAvgPool2d(6)
 
-        out_channels = int(in_channels/4)
-        # self.conv1 = nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
-        #                         norm_layer(out_channels),
-        #                         nn.ReLU(True))
-        # self.conv2 = nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
-        #                         norm_layer(out_channels),
-        #                         nn.ReLU(True))
-        # self.conv3 = nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
-        #                         norm_layer(out_channels),
-        #                         nn.ReLU(True))
-        # self.conv4 = nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
-        #                         norm_layer(out_channels),
-        #                         nn.ReLU(True))
+        self.conv1 = _PSP1x1Conv(in_channels, out_channels, norm_layer, **kwargs)
+        self.conv2 = _PSP1x1Conv(in_channels, out_channels, norm_layer, **kwargs)
+        self.conv3 = _PSP1x1Conv(in_channels, out_channels, norm_layer, **kwargs)
+        self.conv4 = _PSP1x1Conv(in_channels, out_channels, norm_layer, **kwargs)
 
-        ###using SPmodule instand conv
-        self.strip_pool1 =nn.Sequential(StripPooling(in_channels, (20, 12), up_kwargs),
-                                            nn.BatchNorm2d(out_channels),
-                                            nn.ReLU(True))
-        self.strip_pool2 = nn.Sequential(StripPooling(in_channels, (20, 12), up_kwargs),
-                                            nn.BatchNorm2d(out_channels),
-                                            nn.ReLU(True))
-        self.strip_pool3 = nn.Sequential(StripPooling(in_channels, (20, 12), up_kwargs),
-                                            nn.BatchNorm2d(out_channels),
-                                            nn.ReLU(True))
-        self.strip_pool4 = nn.Sequential(StripPooling(in_channels, (20, 12),  up_kwargs),
-                                            nn.BatchNorm2d(out_channels),
-                                            nn.ReLU(True))
+        
+        ###Adding SPmodule 
+        inter_channels = in_channels // 2
+        up_kwargs = {'mode': 'bilinear', 'align_corners': True}
+        self.strip_pool1 =StripPooling(inter_channels, (20, 12), norm_layer, up_kwargs)                             
+        self.strip_pool2 = StripPooling(inter_channels, (20, 12),norm_layer, up_kwargs)                             
+        self.strip_pool3 = StripPooling(inter_channels, (20, 12), norm_layer, up_kwargs)                               
+        self.strip_pool4 = StripPooling(inter_channels, (20, 12), norm_layer, up_kwargs)
+                                    
 
-
-        # bilinear interpolate options
-        self._up_kwargs = up_kwargs
 
     def forward(self, x):
-        _, _, h, w = x.size()
-        # feat1 = F.interpolate(self.conv1(self.pool1(x)), (h, w), **self._up_kwargs)
-        # feat2 = F.interpolate(self.conv2(self.pool2(x)), (h, w), **self._up_kwargs)
-        # feat3 = F.interpolate(self.conv3(self.pool3(x)), (h, w), **self._up_kwargs)
-        # feat4 = F.interpolate(self.conv4(self.pool4(x)), (h, w), **self._up_kwargs)
-        feat1 = F.interpolate(self.strip_pool1(self.pool1(x)), (h, w), **self._up_kwargs)
-        feat2 = F.interpolate(self.strip_pool2(self.pool2(x)), (h, w), **self._up_kwargs)
-        feat3 = F.interpolate(self.strip_pool3(self.pool3(x)), (h, w), **self._up_kwargs)
-        feat4 = F.interpolate(self.strip_pool4(self.pool4(x)), (h, w), **self._up_kwargs)
-        return torch.cat((x, feat1, feat2, feat3, feat4), 1)
+        size = x.size()[2:]
+        feat1 = F.interpolate(self.strip_pool1(self.conv1(self.pool1(x)), size, mode='bilinear', align_corners=True))
+        feat2 = F.interpolate(self.strip_pool2(self.conv2(self.pool2(x)), size, mode='bilinear', align_corners=True))
+        feat3 = F.interpolate(self.strip_pool3(self.conv3(self.pool3(x)), size, mode='bilinear', align_corners=True))
+        feat4 = F.interpolate(self.strip_pool4(self.conv4(self.pool4(x)), size, mode='bilinear', align_corners=True))
+   
+        return torch.cat([x, feat1, feat2, feat3, feat4], 1)
 
 class StripPooling(nn.Module):
     """
     Reference:
     """
-    def __init__(self, in_channels, pool_size, norm_layer, up_kwargs):
+    def __init__(self, in_channels, pool_size, norm_layer, up_kwargs = {'mode': 'bilinear', 'align_corners': True}):
         super(StripPooling, self).__init__()
         self.pool1 = nn.AdaptiveAvgPool2d(pool_size[0])
         self.pool2 = nn.AdaptiveAvgPool2d(pool_size[1])

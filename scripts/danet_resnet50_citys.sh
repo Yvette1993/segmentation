@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+!/usr/bin/env bash
 
-# train
+train
 
 python train_new.py --model danet   --backbone resnet50 --dataset citys  --lr 0.01 --epochs 80 --batch-size 4
 

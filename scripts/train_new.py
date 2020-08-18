@@ -33,7 +33,7 @@ def parse_args():
                                  'danet', 'denseaspp', 'bisenet',
                                  'encnet', 'dunet', 'icnet',
                                  'enet', 'ocnet', 'ccnet', 'psanet',
-                                 'cgnet', 'espnet', 'lednet', 'dfanet'],
+                                 'cgnet', 'espnet', 'lednet', 'dfanet','pspp'],
                         help='model name (default: fcn32s)')
     parser.add_argument('--backbone', type=str, default='resnet50',
                         choices=['vgg16', 'resnet18', 'resnet50',
@@ -224,7 +224,7 @@ class Trainer(object):
         self.model.train()
         for iteration, (images, targets, _) in enumerate(self.train_loader):
             iteration = iteration + 1
-            # images = images.transpose(1, 3)    ####...
+            images = images.transpose(1, 3)    ####...
             # print(images.numpy().shape)
             images = images.to(self.device)
             targets = targets.to(self.device)
@@ -277,7 +277,7 @@ class Trainer(object):
         torch.cuda.empty_cache()  # TODO check if it helps
         model.eval()
         for i, (image, target, filename) in enumerate(self.val_loader):
-            # image = image.transpose(1, 3)    ####...
+            image = image.transpose(1, 3)    ####...
             image = image.to(self.device)
             target = target.to(self.device)
 
