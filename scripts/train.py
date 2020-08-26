@@ -27,7 +27,7 @@ from core.utils.score import SegmentationMetric
 def parse_args():
     parser = argparse.ArgumentParser(description='Semantic Segmentation Training With Pytorch')
     # model and dataset
-    parser.add_argument('--model', type=str, default='fcn',
+    parser.add_argument('--model', type=str, default='pspp',
                         choices=['fcn32s', 'fcn16s', 'fcn8s',
                                  'fcn', 'psp', 'deeplabv3', 'deeplabv3_plus',
                                  'danet', 'denseaspp', 'bisenet',
@@ -40,7 +40,7 @@ def parse_args():
                                  'resnet101', 'resnet152', 'densenet121',
                                  'densenet161', 'densenet169', 'densenet201'],
                         help='backbone name (default: vgg16)')
-    parser.add_argument('--dataset', type=str, default='pascal_voc',
+    parser.add_argument('--dataset', type=str, default='citys',
                         choices=['pascal_voc', 'pascal_aug', 'ade20k',
                                  'citys', 'sbu'],
                         help='dataset name (default: pascal_voc)')
@@ -63,7 +63,7 @@ def parse_args():
                         help='input batch size for training (default: 8)')
     parser.add_argument('--start_epoch', type=int, default=0,
                         metavar='N', help='start epochs (default:0)')
-    parser.add_argument('--epochs', type=int, default=50, metavar='N',
+    parser.add_argument('--epochs', type=int, default=160, metavar='N',
                         help='number of epochs to train (default: 50)')
     parser.add_argument('--lr', type=float, default=1e-4, metavar='LR',
                         help='learning rate (default: 1e-4)')
@@ -219,7 +219,7 @@ class Trainer(object):
             iteration = iteration + 1
             self.lr_scheduler.step()
 
-            # images = images.transpose(1, 3)    ####...
+            images = images.transpose(1, 3)    ####...
             images = images.to(self.device)
             targets = targets.to(self.device)
 

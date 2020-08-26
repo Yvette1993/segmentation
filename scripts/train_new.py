@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 import torch.backends.cudnn as cudnn
+from torchsummary import summary
 
 from torchvision import transforms
 from core.data.dataloader import get_segmentation_dataset
@@ -27,7 +28,7 @@ from core.utils.score import SegmentationMetric
 def parse_args():
     parser = argparse.ArgumentParser(description='Semantic Segmentation Training With Pytorch')
     # model and dataset
-    parser.add_argument('--model', type=str, default='danet',
+    parser.add_argument('--model', type=str, default='pspp',
                         choices=['fcn32s', 'fcn16s', 'fcn8s',
                                  'fcn', 'psp', 'deeplabv3', 'deeplabv3_plus',
                                  'danet', 'denseaspp', 'bisenet',
@@ -51,8 +52,8 @@ def parse_args():
     parser.add_argument('--workers', '-j', type=int, default=4,
                         metavar='N', help='dataloader threads')
     # training hyper params
-    parser.add_argument('--jpu', action='store_true', default=False,
-                        help='JPU')
+    # parser.add_argument('--jpu', action='store_true', default=False,
+    #                     help='JPU')
     parser.add_argument('--use-ohem', type=bool, default=False,
                         help='OHEM Loss for cityscapes dataset')
     parser.add_argument('--aux', action='store_true', default=False,
@@ -168,7 +169,8 @@ class Trainer(object):
         # create network
         BatchNorm2d = nn.SyncBatchNorm if args.distributed else nn.BatchNorm2d
         self.model = get_segmentation_model(model=args.model, dataset=args.dataset, backbone=args.backbone,
-                                            aux=args.aux, jpu=args.jpu, norm_layer=BatchNorm2d).to(self.device)
+                                            aux=args.aux, norm_layer=BatchNorm2d).to(self.device)
+        summary(self.model, (3,480,480))
 
         # resume checkpoint if needed
         if args.resume:
@@ -228,6 +230,7 @@ class Trainer(object):
             # print(images.numpy().shape)
             images = images.to(self.device)
             targets = targets.to(self.device)
+            # print(targets.shape)
 
             outputs = self.model(images)
             loss_dict = self.criterion(outputs, targets)
