@@ -35,7 +35,8 @@ class Evaluator(object):
         ])
 
         # dataset and dataloader
-        val_dataset = get_segmentation_dataset(args.dataset, split='val', mode='testval', transform=input_transform)
+        data_kwargs = {'transform': input_transform, 'base_size': args.base_size, 'crop_size': args.crop_size}
+        val_dataset = get_segmentation_dataset(args.dataset, split='val', mode='testval', **data_kwargs )
         val_sampler = make_data_sampler(val_dataset, False, args.distributed)
         val_batch_sampler = make_batch_data_sampler(val_sampler, images_per_batch=1)
         self.val_loader = data.DataLoader(dataset=val_dataset,
@@ -46,13 +47,15 @@ class Evaluator(object):
         # create network
         BatchNorm2d = nn.SyncBatchNorm if args.distributed else nn.BatchNorm2d
         self.model = get_segmentation_model(model=args.model, dataset=args.dataset, backbone=args.backbone,
-                                            aux=args.aux, pretrained=True, pretrained_base=False,
-                                            local_rank=args.local_rank,
-                                            norm_layer=BatchNorm2d).to(self.device)
-        if args.distributed:
-            self.model = nn.parallel.DistributedDataParallel(self.model,
-                device_ids=[args.local_rank], output_device=args.local_rank)
-        
+                                            aux=args.aux, norm_layer=BatchNorm2d).to(self.device)
+
+        # resume checkpoint if needed
+        if args.resume:
+            if os.path.isfile(args.resume):
+                name, ext = os.path.splitext(args.resume)
+                assert ext == '.pkl' or '.pth', 'Sorry only .pth and .pkl files supported.'
+                print('Resuming training, loading {}...'.format(args.resume))
+                self.model.load_state_dict(torch.load(args.resume, map_location=lambda storage, loc: storage))
         ###...
         # self.model.to(self.device)
         if args.mutilgpu:
@@ -69,8 +72,8 @@ class Evaluator(object):
             model = self.model
         logger.info("Start validation, Total sample: {:d}".format(len(self.val_loader)))
         for i, (image, target, filename) in enumerate(self.val_loader):
-            # image = image.transpose(1, 3)    ####...
-            # target = target.transpose(1, 2)    ####...
+            image = image.transpose(1, 3)    ####...
+            target = target.transpose(1, 2)    ####...
             image = image.to(self.device)
             target = target.to(self.device)
 

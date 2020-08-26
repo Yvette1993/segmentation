@@ -81,7 +81,7 @@ def parse_args():
     # cuda setting
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
-    parser.add_argument('--local_rank', type=int, default=0)
+    # parser.add_argument('--local_rank', type=int, default=0)
     # checkpoint and log
     parser.add_argument('--resume', type=str, default='~/.torch/models/danet_resnet50_citys_best_model.pth',
                         help='put the path to resuming file if needed')

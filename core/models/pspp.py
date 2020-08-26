@@ -11,7 +11,7 @@ __all__ = ['PSPPNet', 'get_pspp', 'get_pspp_resnet50_citys',
            'get_pspp_resnet101_citys']
 
 class PSPPNet(SegBaseModel):
-    def __init__(self, nclass, backbone='resnet50', aux=True, pretrained_base=True,  norm_layer=nn.BatchNorm2d,**kwargs):
+    def __init__(self, nclass, backbone='resnet50', aux=False, pretrained_base=True,  norm_layer=nn.BatchNorm2d,**kwargs):
         super(PSPPNet, self).__init__(nclass, aux, backbone,norm_layer=norm_layer,  pretrained_base=pretrained_base, **kwargs)
         self.head = _PSPPHead(2048,norm_layer=nn.BatchNorm2d,**kwargs)
         self.block = nn.Sequential(

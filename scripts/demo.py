@@ -24,6 +24,8 @@ parser.add_argument('--input-pic', type=str, default='../datasets/voc/VOC2012/JP
                     help='path to the input picture')
 parser.add_argument('--outdir', default='./eval', type=str,
                     help='path to save the predict result')
+parser.add_argument('--resume', type=str, default='~/.torch/models/danet_resnet50_citys_best_model.pth',
+                        help='put the path to resuming file if needed')
 args = parser.parse_args()
 
 
@@ -40,6 +42,14 @@ def demo(config):
     ])
     image = Image.open(config.input_pic).convert('RGB')
     images = transform(image).unsqueeze(0).to(device)
+
+    if args.resume:
+        if os.path.isfile(args.resume):
+            name, ext = os.path.splitext(args.resume)
+            assert ext == '.pkl' or '.pth', 'Sorry only .pth and .pkl files supported.'
+            print('Resuming training, loading {}...'.format(args.resume))
+            self.model.load_state_dict(torch.load(args.resume, map_location=lambda storage, loc: storage))
+
 
     model = get_model(args.model, pretrained=True, root=args.save_folder).to(device)
     print('Finished loading model!')
